@@ -4,15 +4,6 @@ use std::str;
 use std::comm;
 use extra::time;
 
-#[packed]
-struct CEE_version_descriptor {
-	version_major: u8,
-	version_minor: u8,
-	flags: u8,
-	per_ns: u8,
-	min_per: u8,
-}
-
 fn main () {
 	let c = usb::Context::new();
 	c.setDebug(0);
@@ -67,21 +58,19 @@ fn main () {
 						let flags: u8 = y[2];
 						if (flags == 1) { println("dropped packet") }
 						let mode_seq: u8 = y[3];
-						let u: ~[~[uint]] = y.slice(4,64).chunk_iter(6).map(|x| {
+						let v: ~[~[f32]] = y.slice(4,64).chunk_iter(6).map(|x| {
 								// av, ai, bv, bi
 								~[x[0] as uint | ((x[2] as uint & 0x0F) << 8),
 								x[1] as uint | ((x[2] as uint & 0xF0) << 4),
 								x[3] as uint | ((x[5] as uint & 0x0F) << 8),
 								x[4] as uint | ((x[5] as uint & 0xF0) << 4)]
-							}).collect();
-						let s: ~[~[int]] = u.iter().map(|x| {
+							}).map(|x: ~[uint]| {
 								x.iter().map(|&k: &uint| {
 									if (k > (1 << 11) - 1)
 										{ k as int - (1 << 12) }
 									else { k as int }
 								}).collect()
-							}).collect();
-						let v: ~[~[f32]] = s.iter().map(|x| {
+							}).map(|x: ~[int]| {
 							~[x[0] as f32 * 5.0/2048.0,
 							x[1] as f32 * 2.5/2048.0/(0.07*45.0*2.0),
 							x[2] as f32 * 5.0/2048.0,
